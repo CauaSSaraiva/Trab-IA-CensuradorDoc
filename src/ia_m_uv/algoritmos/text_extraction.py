@@ -55,7 +55,7 @@ class EasyOCRExtractor:
                 print("Imagem considerada BOA — não será pré-processada.")
                 processed_image = img
             else:
-                print("Imagem considerada RUIM — será pré-processada.")
+                print("Imagem considerada RUIM — será pré-processada se detectado alterações possíveis.")
                 processed_image = self.preprocess_image(image_path)
             
             # EasyOCR processa a imagem e retorna lista de resultados
@@ -111,49 +111,43 @@ class EasyOCRExtractor:
 
         return media < 0.56  # Ajustado com testes
     
+    def adjust_contrast_if_needed(self, img: np.ndarray) -> np.ndarray:
+        """Aumenta o contraste se a variação for muito baixa (lavadassa)."""
+        if np.std(img) < 20:
+            print("detectada imagem lavada, aumentando contraste...")
+            return cv2.convertScaleAbs(img, alpha=1.5, beta=0)
+        return img
+
+    def denoise_if_noisy(self, img: np.ndarray) -> np.ndarray:
+        """Aplica blur leve se a variação for muito alta."""
+        if np.std(img) > 70:
+            print("detectada imagem ruidosa, aplicando desfoque...")
+            return cv2.GaussianBlur(img, (3, 3), 0)
+        return img
+    
     def preprocess_image(self, image_path):
         """
-        Pré-processamento opcional da imagem
+        Pré-processamento adaptativo baseado na análise da imagem.
+        Não aplica transformações destrutivas em imagens que já estão boas.
         """
-        
-        # Carrega imagem
-        # img = cv2.imread(image_path)
-        
-        # 1. Ler em escala de cinza
         img = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
+        
+        # possível ideia de corrigir se ela tiver rotada em uns 90° mas foi-se umas 3 horas tentando fazer isso funcionar sem falso positivo,
+        # quem sabe um dia. Por enquanto fica só comentado ai pra voltar na ideia depois
+        # img = self.correct_rotation(img)
 
-
-        blurred = cv2.GaussianBlur(img, (3, 3), 0) # ksize 3x3, sigmaY 0
-
-
-        _, binarized = cv2.threshold(blurred, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-
-
-
-        # 4. Remover manchas pequenas (ruído)
-        # O limiar ta baixo para não apagar letras digitais.
-
-        contours, _ = cv2.findContours(binarized, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        for c in contours:
-            # Filtra por área. 
-            if cv2.contourArea(c) < 13: # ir ajustando ? 
-                cv2.drawContours(binarized, [c], -1, 255, -1) 
+        # por alguns testes, agora ele só aplica esses role quando algum deles de fato melhora o resultado do easyocr, mas é bom testar mais dps
+        img = self.adjust_contrast_if_needed(img)
+        img = self.denoise_if_noisy(img)
 
         
-        
-        # Extrai o nome base do arquivo da imagem original
-        base_name = os.path.basename(image_path)
-        output_filename = f"processed_{base_name}"
-
         output_directory = "processed_images"
-        if not os.path.exists(output_directory):
-            os.makedirs(output_directory)
+        os.makedirs(output_directory, exist_ok=True)
+        output_filename = f"processed_{os.path.basename(image_path)}"
         output_path = os.path.join(output_directory, output_filename)
-
-        cv2.imwrite(output_path, binarized) 
+        cv2.imwrite(output_path, img)
         
-        
-        return binarized
+        return img
     
     def extract_from_multiple_images(self, image_folder):
         """
@@ -176,41 +170,42 @@ class EasyOCRExtractor:
         
         return results
 
-def main():
-    """
-    Fluxo principal de teste do EasyOCRExtractor
-    """
-    image_path = "teste_documento.jpg"  # <- SUBSTITUA por sua imagem (nem to usando o main, e sim com pyton -m e os argumentos)
+# comentado ja que nem ta sendo usado isso aqui pra teste
+# def main():
+#     """
+#     Fluxo principal de teste do EasyOCRExtractor
+#     """
+#     image_path = "teste_documento.jpg"  # <- SUBSTITUA por sua imagem (nem to usando o main, e sim com pyton -m e os argumentos)
     
 
-    extractor = EasyOCRExtractor(
-        languages=['pt', 'en'],  # português + inglês para textos mistos
-        use_gpu=False  # mude para True se tiver GPU NVIDIA (tenho amd)
-    )
+#     extractor = EasyOCRExtractor(
+#         languages=['pt', 'en'],  # português + inglês para textos mistos
+#         use_gpu=False  # mude para True se tiver GPU NVIDIA (tenho amd)
+#     )
     
 
-    print("\n" + "="*60)
-    print("TEXTO EXTRAÍDO (confiança >= 0.5):")
-    print("="*60)
-    texto_conservador = extractor.extract_text(image_path, confidence_threshold=0.5)
-    print(texto_conservador)
+#     print("\n" + "="*60)
+#     print("TEXTO EXTRAÍDO (confiança >= 0.5):")
+#     print("="*60)
+#     texto_conservador = extractor.extract_text(image_path, confidence_threshold=0.5)
+#     print(texto_conservador)
     
-    print("\n" + "="*60)
-    print("TEXTO EXTRAÍDO (confiança >= 0.3) - mais texto:")
-    print("="*60)
-    texto_liberal = extractor.extract_text(image_path, confidence_threshold=0.3)
-    print(texto_liberal)
+#     print("\n" + "="*60)
+#     print("TEXTO EXTRAÍDO (confiança >= 0.3) - mais texto:")
+#     print("="*60)
+#     texto_liberal = extractor.extract_text(image_path, confidence_threshold=0.3)
+#     print(texto_liberal)
     
-    # Informações detalhadas para debug
-    print("\n" + "="*60)
-    print("INFORMAÇÕES DETALHADAS:")
-    print("="*60)
-    detalhes = extractor.extract_text_detailed(image_path)
-    for item in detalhes:
-        if 'error' not in item:
-            print(f"Texto: '{item['text']}' | Confiança: {item['confidence']:.2f}")
+#     # Informações detalhadas para debug
+#     print("\n" + "="*60)
+#     print("INFORMAÇÕES DETALHADAS:")
+#     print("="*60)
+#     detalhes = extractor.extract_text_detailed(image_path)
+#     for item in detalhes:
+#         if 'error' not in item:
+#             print(f"Texto: '{item['text']}' | Confiança: {item['confidence']:.2f}")
 
 
-if __name__ == "__main__":
-    main()
+# if __name__ == "__main__":
+#     main()
 
