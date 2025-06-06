@@ -9,6 +9,7 @@ import cv2
 import numpy as np
 from PIL import Image
 import os
+from .text_censor import censor_sensitive_data
 
 class EasyOCRExtractor:
     def __init__(self, languages=None, use_gpu=None):
@@ -62,9 +63,11 @@ class EasyOCRExtractor:
             # Cada resultado: ([coordenadas], texto, confiança)
             results = self.reader.readtext(processed_image)
             
+            censurado = censor_sensitive_data(results, processed_image.copy(), image_path)
+            
             # Filtra por confiança e extrai apenas o texto
             filtered_texts = []
-            for (bbox, text, confidence) in results:
+            for (bbox, text, confidence) in censurado:
                 if confidence >= confidence_threshold:
                     filtered_texts.append(text)
                     
