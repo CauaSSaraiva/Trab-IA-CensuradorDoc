@@ -18,23 +18,19 @@ Certifique-se de ter o `uv` instalado em seu sistema. Se não tiver, você pode 
     uv sync
     ```
 
-## Utilização
-
-### Adicionar um novo pacote
-
-Para adicionar um novo pacote ao projeto, use o comando `uv add`:
-
-```bash
-uv add nome-do-pacote
-```
 
 ### Rodar o programa principal
 
-Para executar o arquivo principal do projeto (`main.py`), utilize o comando `uv run`:
+Para executar o arquivo principal do projeto (`main.py`), utilize o comando `uv run`,
+existem argumentos para serem utilizados junto da execução, o OBRIGATÓRIO é o caminho da imagem com --imagem
+há outros argumentos opcionais, como o --gemini-key.
 
+exemplo de execução:
 ```bash
-uv run ia-m-uv
+uv run ia-m-uv --imagem .\5teste_documento.jpeg --ocr-idiomas pt --ocr-confianca 0.5
 ```
+
+
 
 Este comando executa o módulo `ia-m-uv`, que, de acordo com a estrutura do projeto, provavelmente aponta para `src/ia_m_uv/main.py`.
 
