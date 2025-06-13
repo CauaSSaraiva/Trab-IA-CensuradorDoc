@@ -7,7 +7,7 @@ Funciona MUITO melhor para português que TrOCR!
 import easyocr
 import cv2
 import numpy as np
-from PIL import Image
+# from PIL import Image
 import os
 from .text_censor import censor_sensitive_data
 
@@ -34,6 +34,19 @@ class EasyOCRExtractor:
     def create_default_extractor():
         """Função fábrica que retorna um extrator com configurações padrão"""
         return EasyOCRExtractor()  # Usa os valores padrão definidos na classe
+    
+    def extract_text_raw(self, image_path=None, confidence_threshold=None):
+        """
+        Extrai texto bruto da imagem, sem censura.
+        """
+        confidence_threshold = confidence_threshold if confidence_threshold is not None else 0.5
+        img = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
+        results = self.reader.readtext(img)
+        filtered_texts = []
+        for (bbox, text, confidence) in results:
+            if confidence >= confidence_threshold:
+                filtered_texts.append(text)
+        return ' '.join(filtered_texts).strip()
     
     def extract_text(self, image_path=None, confidence_threshold=None):
         """
@@ -80,28 +93,27 @@ class EasyOCRExtractor:
         except Exception as e:
             return f"Erro ao processar imagem: {str(e)}"
     
-    def extract_text_detailed(self, image_path):
-        """
-        Retorna informações detalhadas sobre o texto encontrado
+    # def extract_text_detailed(self, image_path):
+    #     """
+    #     Retorna informações detalhadas sobre o texto encontrado
         
-        - debug ou quando precisar de coordenadas do texto (vai precisar)
-        - Útil para criar interfaces que mostram onde o texto foi encontrado
-        """
-        try:
-            results = self.reader.readtext(image_path)
+    #     - Útil para criar interfaces que mostram onde o texto foi encontrado
+    #     """
+    #     try:
+    #         results = self.reader.readtext(image_path)
             
-            detailed_results = []
-            for (bbox, text, confidence) in results:
-                detailed_results.append({
-                    'text': text,
-                    'confidence': confidence,
-                    'bbox': bbox,  # coordenadas dos cantos
-                })
+    #         detailed_results = []
+    #         for (bbox, text, confidence) in results:
+    #             detailed_results.append({
+    #                 'text': text,
+    #                 'confidence': confidence,
+    #                 'bbox': bbox,  # coordenadas dos cantos
+    #             })
             
-            return detailed_results
+    #         return detailed_results
             
-        except Exception as e:
-            return [{'error': str(e)}]
+    #     except Exception as e:
+    #         return [{'error': str(e)}]
     
     def should_preprocess(self, img):
         reader = easyocr.Reader(['pt'], gpu=False)
@@ -110,7 +122,7 @@ class EasyOCRExtractor:
         confidences = [conf for (_, _, conf) in results]  
 
         media = sum(confidences) / len(confidences) if confidences else 0
-        print(f"Confiança média: {media:.2f} (limiar: 0.6)")
+        print(f"Confiança média: {media:.2f} (limiar: 0.56)")
 
         return media < 0.56  # Ajustado com testes
     
@@ -152,63 +164,22 @@ class EasyOCRExtractor:
         
         return img
     
-    def extract_from_multiple_images(self, image_folder):
-        """
-        Processa todas as imagens de uma pasta
+    # def extract_from_multiple_images(self, image_folder):
+    #     """
+    #     Processa todas as imagens de uma pasta
+    #     """
+    #     results = {}
         
-        ONDE ALTERAR:
-        - Adicione filtros para tipos de arquivo específicos
-        - Implemente processamento paralelo para muitas imagens
-        """
-        results = {}
+    #     # Extensões de imagem suportadas
+    #     extensions = ['.jpg', '.jpeg', '.png', '.bmp', '.tiff']
         
-        # Extensões de imagem suportadas
-        extensions = ['.jpg', '.jpeg', '.png', '.bmp', '.tiff']
+    #     for filename in os.listdir(image_folder):
+    #         if any(filename.lower().endswith(ext) for ext in extensions):
+    #             image_path = os.path.join(image_folder, filename)
+    #             print(f"Processando: {filename}")
+    #             results[filename] = self.extract_text(image_path)
         
-        for filename in os.listdir(image_folder):
-            if any(filename.lower().endswith(ext) for ext in extensions):
-                image_path = os.path.join(image_folder, filename)
-                print(f"Processando: {filename}")
-                results[filename] = self.extract_text(image_path)
-        
-        return results
-
-# comentado ja que nem ta sendo usado isso aqui pra teste
-# def main():
-#     """
-#     Fluxo principal de teste do EasyOCRExtractor
-#     """
-#     image_path = "teste_documento.jpg"  # <- SUBSTITUA por sua imagem (nem to usando o main, e sim com pyton -m e os argumentos)
-    
-
-#     extractor = EasyOCRExtractor(
-#         languages=['pt', 'en'],  # português + inglês para textos mistos
-#         use_gpu=False  # mude para True se tiver GPU NVIDIA (tenho amd)
-#     )
-    
-
-#     print("\n" + "="*60)
-#     print("TEXTO EXTRAÍDO (confiança >= 0.5):")
-#     print("="*60)
-#     texto_conservador = extractor.extract_text(image_path, confidence_threshold=0.5)
-#     print(texto_conservador)
-    
-#     print("\n" + "="*60)
-#     print("TEXTO EXTRAÍDO (confiança >= 0.3) - mais texto:")
-#     print("="*60)
-#     texto_liberal = extractor.extract_text(image_path, confidence_threshold=0.3)
-#     print(texto_liberal)
-    
-#     # Informações detalhadas para debug
-#     print("\n" + "="*60)
-#     print("INFORMAÇÕES DETALHADAS:")
-#     print("="*60)
-#     detalhes = extractor.extract_text_detailed(image_path)
-#     for item in detalhes:
-#         if 'error' not in item:
-#             print(f"Texto: '{item['text']}' | Confiança: {item['confidence']:.2f}")
+    #     return results
 
 
-# if __name__ == "__main__":
-#     main()
 

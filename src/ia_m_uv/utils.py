@@ -41,6 +41,7 @@ def parse_args():
                        help="Usar GPU para o OCR (se disponível)")
     parser.add_argument('--ocr-confianca', type=float, default=0.7,
                        help="Limite de confiança do OCR (0.0 a 1.0)")
+    parser.add_argument('--gemini-key', help="Chave de API do Gemini para uso opcional de interpretação do texto extraído")
 
     # Argumentos do Gemini (agora o usuario escolhe o token)
     # parser.add_argument('--gemini-token', required=True,

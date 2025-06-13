@@ -34,7 +34,7 @@ def censor_sensitive_data(results, image: np.ndarray, original_image_path: str =
         if is_sensitive(text):
             print(f"[!] Texto sensível detectado e censurado: {text}")
 
-            # Desenhar retângulo preto
+            # Desenhar retângulo preto no bbox
             pts = [tuple(map(int, point)) for point in bbox]
             top_left = min(pts, key=lambda p: p[0] + p[1])
             bottom_right = max(pts, key=lambda p: p[0] + p[1])
@@ -45,7 +45,7 @@ def censor_sensitive_data(results, image: np.ndarray, original_image_path: str =
         else:
             sanitized.append((bbox, text, conf))
 
-    # Salva a imagem censurada
+    # Salvar imagem censurada
     if original_image_path:
         output_dir = "censored_images"
         os.makedirs(output_dir, exist_ok=True)

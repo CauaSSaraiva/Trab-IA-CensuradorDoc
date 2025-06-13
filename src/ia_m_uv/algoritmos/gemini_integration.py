@@ -159,7 +159,12 @@ class GeminiClient:
 
         # Clona a configuração padrão ou usa a fornecida para evitar modificações indesejadas
         effective_config = (
-            generation_config if generation_config else GenerationConfig(**self.default_generation_config.to_dict())
+            generation_config if generation_config else GenerationConfig(
+                temperature=self.default_generation_config.temperature,
+                max_output_tokens=self.default_generation_config.max_output_tokens,
+                top_p=self.default_generation_config.top_p,
+                top_k=self.default_generation_config.top_k,
+            )
         )
 
         # Cria uma nova instância de modelo com a instrução específica
